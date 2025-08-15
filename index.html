@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Analyzer - Análise Profissional de Dados</title>
+    <meta name="description" content="Sistema profissional para análise de dados Excel com contagem automatizada de ocorrências">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="app/globals.css">
+    <style>
+        /* Inline styles for immediate professional appearance */
+        :root {
+            --background: #ffffff;
+            --foreground: #475569;
+            --card: #ecfeff;
+            --card-foreground: #164e63;
+            --primary: #164e63;
+            --primary-foreground: #ffffff;
+            --secondary: #a16207;
+            --accent: #0891b2;
+            --muted: #f9fafb;
+            --muted-foreground: #4b5563;
+            --border: #d1d5db;
+            --radius: 0.25rem;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Geist+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: var(--primary-foreground);
+            padding: 3rem 2rem;
+            text-align: center;
+            border-radius: calc(var(--radius) * 2);
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-family: 'Geist Sans', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.125rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .main-card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) * 2);
+            padding: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .upload-section {
+            background-color: var(--background);
+            border: 2px dashed var(--border);
+            border-radius: calc(var(--radius) * 2);
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+
+        .upload-section:hover {
+            border-color: var(--primary);
+            transform: scale(1.01);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.75rem;
+            border-radius: var(--radius);
+            font-family: 'Geist Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: var(--primary-foreground);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-info {
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: 'Geist Sans', sans-serif;
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--background);
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) * 2);
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-family: 'Geist Sans', sans-serif;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--card-foreground);
+        }
+
+        .count-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+        }
+
+        .count-item {
+            background-color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .count-item:hover {
+            background-color: var(--card);
+        }
+
+        .count-number {
+            font-family: 'Geist Sans', sans-serif;
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .count-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--muted-foreground);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--muted);
+            border-radius: calc(var(--radius) / 2);
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transition: width 0.3s ease;
+        }
+
+        .error {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 2rem;
+            color: var(--muted-foreground);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--muted);
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .file-input { display: none; }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background-color: var(--muted);
+            border-radius: calc(var(--radius) * 2);
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-number {
+            font-family: 'Geist Sans', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .summary-label {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📊 Excel Data Analyzer</h1>
+            <p>Essew sistema irá filtrar as solunas de FISICO - TERMO DE ENTREGA | FISICO - TERMO DE DEVOLUÇÃO </p>
+        </header>
+
+        <main class="main-card">
+            <div class="upload-section" id="uploadArea">
+                <svg class="icon" style="width: 3rem; height: 3rem; margin-bottom: 1rem; color: var(--muted-foreground);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                
+                <h3>Carregar Arquivo Excel</h3>
+                <p>Arraste e solte seu arquivo Excel aqui ou clique para selecionar</p>
+                
+                <div style="margin-top: 1.5rem;">
+                    <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" />
+                    <label for="fileInput" class="btn btn-primary">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        Selecionar Arquivo
+                    </label>
+                    <button id="analyzeBtn" class="btn btn-secondary" disabled style="margin-left: 1rem;">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Analisar Dados
+                    </button>
+                </div>
+                
+                <div id="fileInfo" class="file-info" style="display: none;"></div>
+            </div>
+
+            <div id="loadingSection" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <span>Processando arquivo Excel...</span>
+            </div>
+
+            <div id="errorSection" class="error" style="display: none;"></div>
+        </main>
+
+        <section id="resultsSection" class="results-section">
+            <div class="main-card">
+                <div class="stat-header">
+                    <svg class="icon" style="color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <h2>Resultados da Análise</h2>
+                </div>
+
+                <div id="summaryStats" class="summary-stats" style="display: none;"></div>
+                <div id="analysisResults" class="results-grid"></div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const uploadArea = document.getElementById('uploadArea');
+        const loadingSection = document.getElementById('loadingSection');
+        const errorSection = document.getElementById('errorSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const analysisResults = document.getElementById('analysisResults');
+        const summaryStats = document.getElementById('summaryStats');
+
+        let selectedFile = null;
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--primary)';
+            uploadArea.style.backgroundColor = 'var(--muted)';
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border)';
+            uploadArea.style.backgroundColor = 'var(--background)';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border)';
+            uploadArea.style.backgroundColor = 'var(--background)';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelection(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                handleFileSelection(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelection(file) {
+            selectedFile = file;
+            fileInfo.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <svg class="icon" style="color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div>
+                        <div style="font-weight: 600; color: var(--foreground);">${file.name}</div>
+                        <div style="font-size: 0.75rem; color: var(--muted-foreground);">
+                            ${(file.size / 1024 / 1024).toFixed(2)} MB • ${file.type || 'Excel file'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            fileInfo.style.display = 'block';
+            analyzeBtn.disabled = false;
+        }
+
+        analyzeBtn.addEventListener('click', function() {
+            if (!selectedFile) return;
+
+            showLoading();
+            hideError();
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    setTimeout(() => {
+                        analyzeData(jsonData);
+                        hideLoading();
+                    }, 1000);
+                    
+                } catch (err) {
+                    hideLoading();
+                    showError('Erro ao processar arquivo: ' + err.message);
+                }
+            };
+            
+            reader.readAsArrayBuffer(selectedFile);
+        });
+
+        function analyzeData(data) {
+            const targetColumns = [
+                'FISICO - TERMO DE ENTREGA',
+                'FISICO - TERMO DE DEVOLUÇÃO'
+            ];
+
+            let headerRow = -1;
+            let columnIndexes = {};
+
+            // Find header row
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                let foundColumns = 0;
+                
+                targetColumns.forEach(colName => {
+                    const index = row.findIndex(cell => 
+                        cell && cell.toString().trim().toUpperCase() === colName.toUpperCase()
+                    );
+                    if (index !== -1) {
+                        columnIndexes[colName] = index;
+                        foundColumns++;
+                    }
+                });
+
+                if (foundColumns === targetColumns.length) {
+                    headerRow = i;
+                    break;
+                }
+            }
+
+            if (headerRow === -1) {
+                showError('Colunas não encontradas. Procurando por: ' + targetColumns.join(', '));
+                return;
+            }
+
+            // Analyze data
+            const results = {};
+            let totalRows = 0;
+            
+            targetColumns.forEach(colName => {
+                results[colName] = {
+                    'TEM': 0,
+                    'NÃO TEM': 0,
+                    'OUTROS': 0,
+                    'VAZIOS': 0
+                };
+            });
+
+            // Process data rows
+            for (let i = headerRow + 1; i < data.length; i++) {
+                const row = data[i];
+                if (row.some(cell => cell !== undefined && cell !== '')) {
+                    totalRows++;
+                }
+                
+                targetColumns.forEach(colName => {
+                    const colIndex = columnIndexes[colName];
+                    const cellValue = row[colIndex];
+                    
+                    if (!cellValue || cellValue.toString().trim() === '') {
+                        results[colName]['VAZIOS']++;
+                    } else {
+                        const value = cellValue.toString().trim().toUpperCase();
+                        if (value === 'TEM') {
+                            results[colName]['TEM']++;
+                        } else if (value === 'NÃO TEM') {
+                            results[colName]['NÃO TEM']++;
+                        } else {
+                            results[colName]['OUTROS']++;
+                        }
+                    }
+                });
+            }
+
+            displayResults(results, totalRows);
+        }
+
+        function displayResults(results, totalRows) {
+            // Summary statistics
+            let totalTem = 0;
+            let totalNaoTem = 0;
+            
+            Object.values(results).forEach(colResults => {
+                totalTem += colResults['TEM'];
+                totalNaoTem += colResults['NÃO TEM'];
+            });
+
+            summaryStats.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-number">${totalRows}</div>
+                    <div class="summary-label">Total de Registros</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number">${totalTem}</div>
+                    <div class="summary-label">Total "TEM"</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number">${totalNaoTem}</div>
+                    <div class="summary-label">Total "NÃO TEM"</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number">${Object.keys(results).length}</div>
+                    <div class="summary-label">Colunas Analisadas</div>
+                </div>
+            `;
+            summaryStats.style.display = 'grid';
+
+            // Detailed results
+            let html = '';
+            
+            Object.keys(results).forEach(colName => {
+                const colResults = results[colName];
+                const total = Object.values(colResults).reduce((a, b) => a + b, 0);
+                const temPercent = total > 0 ? (colResults['TEM'] / total * 100).toFixed(1) : 0;
+                const naoTemPercent = total > 0 ? (colResults['NÃO TEM'] / total * 100).toFixed(1) : 0;
+                
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <svg class="icon" style="color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <div class="stat-title">${colName}</div>
+                        </div>
+                        
+                        <div class="count-grid">
+                            <div class="count-item">
+                                <div class="count-number">${colResults['TEM']}</div>
+                                <div class="count-label">TEM</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${temPercent}%"></div>
+                                </div>
+                            </div>
+                            <div class="count-item">
+                                <div class="count-number">${colResults['NÃO TEM']}</div>
+                                <div class="count-label">NÃO TEM</div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${naoTemPercent}%"></div>
+                                </div>
+                            </div>
+                            <div class="count-item">
+                                <div class="count-number">${colResults['OUTROS']}</div>
+                                <div class="count-label">OUTROS</div>
+                            </div>
+                            <div class="count-item">
+                                <div class="count-number">${colResults['VAZIOS']}</div>
+                                <div class="count-label">VAZIOS</div>
+                            </div>
+                            <div class="count-item">
+                                <div class="count-number">${total}</div>
+                                <div class="count-label">TOTAL</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            analysisResults.innerHTML = html;
+            resultsSection.classList.add('show');
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showLoading() {
+            loadingSection.style.display = 'flex';
+            analyzeBtn.disabled = true;
+        }
+
+        function hideLoading() {
+            loadingSection.style.display = 'none';
+            analyzeBtn.disabled = false;
+        }
+
+        function showError(message) {
+            errorSection.textContent = message;
+            errorSection.style.display = 'block';
+            resultsSection.classList.remove('show');
+        }
+
+        function hideError() {
+            errorSection.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
